@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.os.Bundle;
@@ -16,16 +18,18 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.facebook.stetho.Stetho;
-import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.sam_chordas.android.stockhawk.R;
+import com.sam_chordas.android.stockhawk.Utility;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
 import com.sam_chordas.android.stockhawk.rest.QuoteCursorAdapter;
@@ -38,13 +42,19 @@ import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
 import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
-import com.squareup.okhttp.OkHttpClient;
 
-public class MyStocksActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+import butterknife.Bind;
+import butterknife.ButterKnife;
 
+public class MyStocksActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener{
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
+    private String LOG_TAG = MyStocksActivity.class.getSimpleName();
+    public static final long PERIODIC_TASK_FREQ_IN_SECS = 1600L;
+    public static final long PERIODIC_TASK_FLEX_IN_SECS = 10L;
+    public static final String PERIODIC_TASK_PERIODIC_TAG = "periodic";
+    private static final int CURSOR_LOADER_ID = 0;
 
     /**
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
@@ -52,52 +62,69 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     private CharSequence mTitle;
     private Intent mServiceIntent;
     private ItemTouchHelper mItemTouchHelper;
-    private static final int CURSOR_LOADER_ID = 0;
     private QuoteCursorAdapter mCursorAdapter;
     private Context mContext;
     private Cursor mCursor;
     boolean isConnected;
 
+    @Bind(R.id.recycler_view)
+    RecyclerView recyclerView;
+    @Bind(R.id.fab)
+    FloatingActionButton fab;
+    @Bind(R.id.recycler_view_container)
+    LinearLayout recyclerViewLinearLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mContext = this;
-        ConnectivityManager cm =
-                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        isConnected = activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
         setContentView(R.layout.activity_my_stocks);
-        // The intent service is for executing immediate pulls from the Yahoo API
-        // GCMTaskService can only schedule tasks, they cannot execute immediately
-        mServiceIntent = new Intent(this, StockIntentService.class);
-        if (savedInstanceState == null){
-            // Run the initialize task service so that some stocks appear upon an empty database
-            mServiceIntent.putExtra("tag", "init");
-            if (isConnected){
-                startService(mServiceIntent);
-            } else{
-                networkToast();
-            }
+        ButterKnife.bind(this);
+        mContext = this;
+
+        getStockData(savedInstanceState);
+
+        initRecyclerView();
+        initAddStockButton();
+        initItemTouchHelper();
+        createPeriodicTask();
+
+//        Stetho.initialize(
+//                Stetho.newInitializerBuilder(this)
+//                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+//                        .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+//                        .build());
+//        OkHttpClient client = new OkHttpClient();
+//        client.networkInterceptors().add(new StethoInterceptor());
+
+    }
+
+    private void initItemTouchHelper() {
+        ItemTouchHelper.Callback callback = new SimpleItemTouchHelperCallback(mCursorAdapter);
+        mItemTouchHelper = new ItemTouchHelper(callback);
+        mItemTouchHelper.attachToRecyclerView(recyclerView);
+
+        mTitle = getTitle();
+    }
+
+    private void createPeriodicTask() {
+        if (isConnected){
+            // create a periodic task to pull stocks once every hour after the app has been opened. This
+            // is so Widget data stays up to date.
+            PeriodicTask periodicTask = new PeriodicTask.Builder()
+                    .setService(StockTaskService.class)
+                    .setPeriod(PERIODIC_TASK_FREQ_IN_SECS)
+                    .setFlex(PERIODIC_TASK_FLEX_IN_SECS)
+                    .setTag(PERIODIC_TASK_PERIODIC_TAG)
+                    .setRequiredNetwork(Task.NETWORK_STATE_CONNECTED)
+                    .setRequiresCharging(false)
+                    .build();
+            // Schedule task with tag "periodic." This ensure that only the stocks present in the DB
+            // are updated.
+            GcmNetworkManager.getInstance(this).schedule(periodicTask);
         }
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
 
-        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
-
-        mCursorAdapter = new QuoteCursorAdapter(this, null);
-        recyclerView.addOnItemTouchListener(new RecyclerViewItemClickListener(this,
-                new RecyclerViewItemClickListener.OnItemClickListener() {
-                    @Override public void onItemClick(View v, int position) {
-                        //TODO:
-                        // do something on item click
-                    }
-                }));
-        recyclerView.setAdapter(mCursorAdapter);
-
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+    private void initAddStockButton() {
         fab.attachToRecyclerView(recyclerView);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -128,57 +155,62 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                 }
                             })
                             .show();
-                } else {
-                    networkToast();
                 }
-
             }
         });
+    }
 
-        ItemTouchHelper.Callback callback = new SimpleItemTouchHelperCallback(mCursorAdapter);
-        mItemTouchHelper = new ItemTouchHelper(callback);
-        mItemTouchHelper.attachToRecyclerView(recyclerView);
+    private void getStockData(Bundle savedInstanceState) {
+        ConnectivityManager cm =
+                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        mTitle = getTitle();
-        if (isConnected){
-            long period = 3600L;
-            long flex = 10L;
-            String periodicTag = "periodic";
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
 
-            // create a periodic task to pull stocks once every hour after the app has been opened. This
-            // is so Widget data stays up to date.
-            PeriodicTask periodicTask = new PeriodicTask.Builder()
-                    .setService(StockTaskService.class)
-                    .setPeriod(period)
-                    .setFlex(flex)
-                    .setTag(periodicTag)
-                    .setRequiredNetwork(Task.NETWORK_STATE_CONNECTED)
-                    .setRequiresCharging(false)
-                    .build();
-            // Schedule task with tag "periodic." This ensure that only the stocks present in the DB
-            // are updated.
-            GcmNetworkManager.getInstance(this).schedule(periodicTask);
+        // The intent service is for executing immediate pulls from the Yahoo API
+        // GCMTaskService can only schedule tasks, they cannot execute immediately
+        mServiceIntent = new Intent(this, StockIntentService.class);
+        if (savedInstanceState == null){
+            // Run the initialize task service so that some stocks appear upon an empty database
+            mServiceIntent.putExtra("tag", "init");
+            if (isConnected){
+                startService(mServiceIntent);
+            }
         }
+    }
 
-                Stetho.initialize(
-                        Stetho.newInitializerBuilder(this)
-                                .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
-                                .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
-                                .build());
-        OkHttpClient client = new OkHttpClient();
-        client.networkInterceptors().add(new StethoInterceptor());
+    @NonNull
+    private void initRecyclerView() {
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
 
+        mCursorAdapter = new QuoteCursorAdapter(this, null);
+        recyclerView.addOnItemTouchListener(new RecyclerViewItemClickListener(this,
+                new RecyclerViewItemClickListener.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(View v, int position) {
+                        //TODO:
+                        // do something on item click
+                    }
+                }));
+        recyclerView.setAdapter(mCursorAdapter);
     }
 
 
     @Override
     public void onResume() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        sp.registerOnSharedPreferenceChangeListener(this);
         super.onResume();
         getLoaderManager().restartLoader(CURSOR_LOADER_ID, null, this);
     }
 
-    public void networkToast(){
-        Toast.makeText(mContext, getString(R.string.network_toast), Toast.LENGTH_SHORT).show();
+    @Override
+    public void onPause() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        sp.unregisterOnSharedPreferenceChangeListener(this);
+        super.onPause();
     }
 
     public void restoreActionBar() {
@@ -231,6 +263,17 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     public void onLoadFinished(Loader<Cursor> loader, Cursor data){
         mCursorAdapter.swapCursor(data);
         mCursor = data;
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+        SharedPreferences.Editor spe = sp.edit();
+        if(data.getCount() > 0 && !isConnected){
+            spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_OUTDATED);
+            spe.apply();
+        }else if(!isConnected){
+            spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_NO_CONNECTION);
+            spe.apply();
+        }
+        updateEmptyView();
     }
 
     @Override
@@ -238,22 +281,43 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         mCursorAdapter.swapCursor(null);
     }
 
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.v(LOG_TAG, "Shared preference changed");
+        if (key.equals(getString(R.string.pref_data_status_key))) {
+            updateEmptyView();
+        }
+    }
 
     /*
     Updates the empty list view with contextually relevant information that the user can
-    use to determine why they aren't seeing stocks.
- */
+    use to determine why they aren't seeing data.
+    */
     private void updateEmptyView() {
-        if ( mCursorAdapter.getItemCount() == 0 ) {
-            TextView emptyTextView = (TextView) findViewById(R.id.recyclerview_empty);
-            if ( null != emptyTextView ) {
-
-                int message = R.string.empty_stock_list;
-                /*if (!isConnected) {
-                    message = R.string.empty_stock_list_no_network;
-                }*/
-                emptyTextView.setText(message);
-            }
+        int status = Utility.getDataStatus(this);
+        LayoutInflater inflater = LayoutInflater.from(mContext);
+        TextView statusTextView = (TextView)inflater.inflate(R.layout.data_status_text_view, null);
+        recyclerViewLinearLayout = (LinearLayout) findViewById(R.id.recycler_view_container);
+        if(recyclerViewLinearLayout.getChildCount() > 1)
+            recyclerViewLinearLayout.removeViewAt(0);
+        switch (status) {
+            case StockTaskService.DATA_STATUS_NO_CONNECTION:
+                statusTextView.setText(R.string.empty_data_list_no_network);
+                recyclerViewLinearLayout.addView(statusTextView, 0);
+                break;
+            case StockTaskService.DATA_STATUS_OUTDATED:
+                statusTextView.setText(R.string.outdated_data_list);
+                recyclerViewLinearLayout.addView(statusTextView, 0);
+                break;
+            case StockTaskService.DATA_STATUS_SERVER_DOWN:
+                statusTextView.setText(R.string.empty_data_list_server_down);
+                recyclerViewLinearLayout.addView(statusTextView, 0);
+                break;
+            case StockTaskService.DATA_STATUS_CONNECTION_RESTORED:
+                getStockData(null);
+                initAddStockButton();
+                initItemTouchHelper();
+                break;
         }
     }
 
