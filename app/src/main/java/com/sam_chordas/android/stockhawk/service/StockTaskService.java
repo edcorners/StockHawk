@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 
 /**
  * Created by sam_chordas on 9/30/15.
@@ -68,24 +69,27 @@ public class StockTaskService extends GcmTaskService{
             try{
                 getResponse = fetchData(urlString);
                 result = GcmNetworkManager.RESULT_SUCCESS;
-                try {
+
+                ArrayList quoteContentValues = Utils.quoteJsonToContentVals(getResponse);
+                if(!quoteContentValues.isEmpty()) {
                     ContentValues contentValues = new ContentValues();
                     // update ISCURRENT to 0 (false) so new data is current
-                    if (isUpdate){
+                    if (isUpdate) {
                         contentValues.put(QuoteColumns.ISCURRENT, 0);
                         mContext.getContentResolver().update(QuoteProvider.Quotes.CONTENT_URI, contentValues,
                                 null, null);
                     }
-                    mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY,
-                            Utils.quoteJsonToContentVals(getResponse));
+                    mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY, quoteContentValues);
                     setDataStatus(DATA_STATUS_OK);
-                }catch (RemoteException | OperationApplicationException e){
-                    Log.e(LOG_TAG, "Error applying batch insert", e);
-                    setDataStatus(DATA_STATUS_OUTDATED);
+                }else{
+                    setDataStatus(DATA_STATUS_NOT_FOUND);
                 }
             } catch (IOException e){
                 e.printStackTrace();
                 setDataStatus(DATA_STATUS_SERVER_DOWN);
+            } catch (RemoteException | OperationApplicationException e){
+                Log.e(LOG_TAG, "Error applying batch insert", e);
+                setDataStatus(DATA_STATUS_OUTDATED);
             }
         }
         return result;
@@ -165,7 +169,7 @@ public class StockTaskService extends GcmTaskService{
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({DATA_STATUS_OK, DATA_STATUS_SERVER_DOWN, DATA_STATUS_OUTDATED, DATA_STATUS_NO_CONNECTION,DATA_STATUS_CONNECTION_RESTORED})
+    @IntDef({DATA_STATUS_OK, DATA_STATUS_SERVER_DOWN, DATA_STATUS_OUTDATED, DATA_STATUS_NO_CONNECTION,DATA_STATUS_CONNECTION_RESTORED,DATA_STATUS_NOT_FOUND})
     public @interface DataStatus {}
 
     public static final int DATA_STATUS_OK = 0;
@@ -173,6 +177,7 @@ public class StockTaskService extends GcmTaskService{
     public static final int DATA_STATUS_OUTDATED = 2;
     public static final int DATA_STATUS_NO_CONNECTION = 3;
     public static final int DATA_STATUS_CONNECTION_RESTORED = 4;
+    public static final int DATA_STATUS_NOT_FOUND = 5;
 
 
     private void setDataStatus(@DataStatus int status){

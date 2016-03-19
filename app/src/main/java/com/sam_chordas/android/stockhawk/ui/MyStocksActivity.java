@@ -66,6 +66,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     private Context mContext;
     private Cursor mCursor;
     boolean isConnected;
+    private SharedPreferences.Editor spe;
 
     @Bind(R.id.recycler_view)
     RecyclerView recyclerView;
@@ -80,6 +81,8 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         setContentView(R.layout.activity_my_stocks);
         ButterKnife.bind(this);
         mContext = this;
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+        spe = sp.edit();
 
         getStockData(savedInstanceState);
 
@@ -133,12 +136,13 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                             .content(R.string.content_test)
                             .inputType(InputType.TYPE_CLASS_TEXT)
                             .input(R.string.input_hint, R.string.input_prefill, new MaterialDialog.InputCallback() {
-                                @Override public void onInput(MaterialDialog dialog, CharSequence input) {
+                                @Override
+                                public void onInput(MaterialDialog dialog, CharSequence input) {
                                     // On FAB click, receive user input. Make sure the stock doesn't already exist
                                     // in the DB and proceed accordingly
                                     Cursor c = getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                                            new String[] { QuoteColumns.SYMBOL }, QuoteColumns.SYMBOL + "= ?",
-                                            new String[] { input.toString() }, null);
+                                            new String[]{QuoteColumns.SYMBOL}, QuoteColumns.SYMBOL + "= ?",
+                                            new String[]{input.toString()}, null);
                                     if (c.getCount() != 0) {
                                         Toast toast =
                                                 Toast.makeText(MyStocksActivity.this, "This stock is already saved!",
@@ -264,16 +268,16 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         mCursorAdapter.swapCursor(data);
         mCursor = data;
 
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        SharedPreferences.Editor spe = sp.edit();
         if(data.getCount() > 0 && !isConnected){
             spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_OUTDATED);
             spe.apply();
+            updateEmptyView();
         }else if(!isConnected){
             spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_NO_CONNECTION);
             spe.apply();
+            updateEmptyView();
         }
-        updateEmptyView();
+
     }
 
     @Override
@@ -283,7 +287,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.v(LOG_TAG, "Shared preference changed");
+        Log.v(LOG_TAG, "onSharedPreferenceChanged()");
         if (key.equals(getString(R.string.pref_data_status_key))) {
             updateEmptyView();
         }
@@ -317,6 +321,11 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                 getStockData(null);
                 initAddStockButton();
                 initItemTouchHelper();
+                break;
+            case StockTaskService.DATA_STATUS_NOT_FOUND:
+                Toast.makeText(mContext, "Stock symbol not found", Toast.LENGTH_SHORT).show();
+                spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_OK);
+                spe.apply();
                 break;
         }
     }
