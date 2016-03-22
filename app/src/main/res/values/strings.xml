@@ -1,26 +1,27 @@
 <resources>
-  <string name="app_name">Stock Hawk</string>
+    <string name="app_name">Stock Hawk</string>
 
-  <string name="action_example">Example action</string>
+    <string name="action_example">Example action</string>
 
-  <string name="action_settings">Settings</string>
-  <string name="action_change_units">Change Units</string>
-  <string name="symbol_search">Symbol Search</string>
-  <string name="content_test">Search for a Stock Symbol</string>
-  <string name="input_hint">FB</string>
-  <string name="input_prefill"></string>
-  <string name="widget_title">Today\'s Market</string>
-  <string name="internet_connection_required">Uh-oh! This app requires an internet connection</string>
-  <string name="outdated_stock_list">No Stock Information Available</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_change_units">Change Units</string>
+    <string name="symbol_search">Symbol Search</string>
+    <string name="content_test">Search for a Stock Symbol</string>
+    <string name="input_hint">FB</string>
+    <string name="input_prefill"></string>
+    <string name="widget_title">Today\'s Market</string>
+    <string name="internet_connection_required">Uh-oh! This app requires an internet connection</string>
+    <string name="outdated_stock_list">No Stock Information Available</string>
 
-  <!-- TODO: Remove or change this placeholder text -->
+    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
-  <!-- Key name for storing data status in SharedPreferences -->
-  <string name="pref_data_status_key" translatable="false">data-status</string>
+    <!-- Key name for storing data status in SharedPreferences -->
+    <string name="pref_data_status_key" translatable="false">data-status</string>
 
-  <!-- Empty Weather Database -->
-  <string name="empty_data_list_no_network">No stock information available. The network is not available to fetch data.</string>
-  <string name="empty_data_list_server_down">No stock information available. The server is not returning data.</string>
-  <string name="outdated_data_list">Data displayed might be outdated due to a network connection problem.</string>
+    <!-- Empty Weather Database -->
+    <string name="empty_data_list_no_network">No stock information available. The network is not available to fetch data.</string>
+    <string name="empty_data_list_server_down">No stock information available. The server is not returning data.</string>
+    <string name="outdated_data_list">Data displayed might be outdated due to a network connection problem.</string>
+    <string name="title_activity_stock_graph">Chart</string>
 </resources>

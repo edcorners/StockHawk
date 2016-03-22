@@ -11,6 +11,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.os.Bundle;
@@ -28,8 +29,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.facebook.stetho.Stetho;
+import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.sam_chordas.android.stockhawk.R;
-import com.sam_chordas.android.stockhawk.Utility;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
 import com.sam_chordas.android.stockhawk.rest.QuoteCursorAdapter;
@@ -42,6 +44,7 @@ import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
 import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
+import com.squareup.okhttp.OkHttpClient;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -69,11 +72,13 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     private SharedPreferences.Editor spe;
 
     @Bind(R.id.recycler_view)
-    RecyclerView recyclerView;
+    RecyclerView mRecyclerView;
     @Bind(R.id.fab)
-    FloatingActionButton fab;
+    FloatingActionButton mFloatingActionButton;
     @Bind(R.id.recycler_view_container)
-    LinearLayout recyclerViewLinearLayout;
+    LinearLayout mLinearLayout;
+    @Bind(R.id.swipe_refresh_layout)
+    SwipeRefreshLayout mSwipeRefreshLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,24 +92,33 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         getStockData(savedInstanceState);
 
         initRecyclerView();
+
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                getStockData(null);
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        });
+
         initAddStockButton();
         initItemTouchHelper();
         createPeriodicTask();
 
-//        Stetho.initialize(
-//                Stetho.newInitializerBuilder(this)
-//                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
-//                        .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
-//                        .build());
-//        OkHttpClient client = new OkHttpClient();
-//        client.networkInterceptors().add(new StethoInterceptor());
+        Stetho.initialize(
+                Stetho.newInitializerBuilder(this)
+                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+                        .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+                        .build());
+        OkHttpClient client = new OkHttpClient();
+        client.networkInterceptors().add(new StethoInterceptor());
 
     }
 
     private void initItemTouchHelper() {
         ItemTouchHelper.Callback callback = new SimpleItemTouchHelperCallback(mCursorAdapter);
         mItemTouchHelper = new ItemTouchHelper(callback);
-        mItemTouchHelper.attachToRecyclerView(recyclerView);
+        mItemTouchHelper.attachToRecyclerView(mRecyclerView);
 
         mTitle = getTitle();
     }
@@ -124,14 +138,16 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
             // Schedule task with tag "periodic." This ensure that only the stocks present in the DB
             // are updated.
             GcmNetworkManager.getInstance(this).schedule(periodicTask);
+            //TODO Add a shared pref indicating task has been scheduled
         }
     }
 
     private void initAddStockButton() {
-        fab.attachToRecyclerView(recyclerView);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (isConnected){
+        //mFloatingActionButton.attachToRecyclerView(mRecyclerView);
+        mFloatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isConnected) {
                     new MaterialDialog.Builder(mContext).title(R.string.symbol_search)
                             .content(R.string.content_test)
                             .inputType(InputType.TYPE_CLASS_TEXT)
@@ -142,7 +158,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                     // in the DB and proceed accordingly
                                     Cursor c = getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
                                             new String[]{QuoteColumns.SYMBOL}, QuoteColumns.SYMBOL + "= ?",
-                                            new String[]{input.toString()}, null);
+                                            new String[]{input.toString().toUpperCase()}, null);
                                     if (c.getCount() != 0) {
                                         Toast toast =
                                                 Toast.makeText(MyStocksActivity.this, "This stock is already saved!",
@@ -153,7 +169,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                     } else {
                                         // Add the stock to DB
                                         mServiceIntent.putExtra("tag", "add");
-                                        mServiceIntent.putExtra("symbol", input.toString());
+                                        mServiceIntent.putExtra("symbol", input.toString().toUpperCase());
                                         startService(mServiceIntent);
                                     }
                                 }
@@ -179,26 +195,32 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
             // Run the initialize task service so that some stocks appear upon an empty database
             mServiceIntent.putExtra("tag", "init");
             if (isConnected){
-                startService(mServiceIntent);
+                startService(mServiceIntent); //TODO run only if periodic task is unscheduled
             }
         }
     }
 
     @NonNull
     private void initRecyclerView() {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
 
         mCursorAdapter = new QuoteCursorAdapter(this, null);
-        recyclerView.addOnItemTouchListener(new RecyclerViewItemClickListener(this,
+        mRecyclerView.addOnItemTouchListener(new RecyclerViewItemClickListener(this,
                 new RecyclerViewItemClickListener.OnItemClickListener() {
                     @Override
                     public void onItemClick(View v, int position) {
-                        //TODO:
-                        // do something on item click
+                        Cursor cursor = mCursorAdapter.getCursor();
+                        cursor.moveToPosition(position);
+                        int symbolIndex = cursor.getColumnIndex(QuoteColumns.SYMBOL);
+                        String symbol = cursor.getString(symbolIndex);
+                        Intent graphIntent = new Intent(getApplicationContext(), StockGraphActivity.class);
+                        Log.v(LOG_TAG, symbol);
+                        graphIntent.setData(QuoteProvider.Quotes.withSymbol(symbol));
+                        startActivity(graphIntent);
                     }
                 }));
-        recyclerView.setAdapter(mCursorAdapter);
+        mRecyclerView.setAdapter(mCursorAdapter);
     }
 
 
@@ -298,24 +320,24 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     use to determine why they aren't seeing data.
     */
     private void updateEmptyView() {
-        int status = Utility.getDataStatus(this);
+        int status = Utils.getDataStatus(this);
         LayoutInflater inflater = LayoutInflater.from(mContext);
         TextView statusTextView = (TextView)inflater.inflate(R.layout.data_status_text_view, null);
-        recyclerViewLinearLayout = (LinearLayout) findViewById(R.id.recycler_view_container);
-        if(recyclerViewLinearLayout.getChildCount() > 1)
-            recyclerViewLinearLayout.removeViewAt(0);
+        mLinearLayout = (LinearLayout) findViewById(R.id.recycler_view_container);
+        if(mLinearLayout.getChildCount() > 1)
+            mLinearLayout.removeViewAt(0);
         switch (status) {
             case StockTaskService.DATA_STATUS_NO_CONNECTION:
                 statusTextView.setText(R.string.empty_data_list_no_network);
-                recyclerViewLinearLayout.addView(statusTextView, 0);
+                mLinearLayout.addView(statusTextView, 0);
                 break;
             case StockTaskService.DATA_STATUS_OUTDATED:
                 statusTextView.setText(R.string.outdated_data_list);
-                recyclerViewLinearLayout.addView(statusTextView, 0);
+                mLinearLayout.addView(statusTextView, 0);
                 break;
             case StockTaskService.DATA_STATUS_SERVER_DOWN:
                 statusTextView.setText(R.string.empty_data_list_server_down);
-                recyclerViewLinearLayout.addView(statusTextView, 0);
+                mLinearLayout.addView(statusTextView, 0);
                 break;
             case StockTaskService.DATA_STATUS_CONNECTION_RESTORED:
                 getStockData(null);

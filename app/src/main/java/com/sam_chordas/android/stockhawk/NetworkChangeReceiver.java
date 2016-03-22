@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.util.Log;
 
+import com.sam_chordas.android.stockhawk.rest.Utils;
 import com.sam_chordas.android.stockhawk.service.StockTaskService;
 import com.sam_chordas.android.stockhawk.ui.MyStocksActivity;
 
@@ -23,10 +24,10 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
 
         if (connMgr.getActiveNetworkInfo() != null) {
             Log.d(LOG_TAG, "Network ON");
-            Utility.setDataStatus(context, StockTaskService.DATA_STATUS_CONNECTION_RESTORED);
+            Utils.setDataStatus(context, StockTaskService.DATA_STATUS_CONNECTION_RESTORED);
         }else{
             Log.d(LOG_TAG, "Network OFF" );
-            Utility.setDataStatus(context, StockTaskService.DATA_STATUS_OUTDATED);
+            Utils.setDataStatus(context, StockTaskService.DATA_STATUS_OUTDATED);
         }
     }
 }
