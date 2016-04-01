@@ -115,9 +115,9 @@ public class StockTaskService extends GcmTaskService{
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        if (params.getTag().equals("init") || params.getTag().equals("periodic")){
+        if (params.getTag().equals(StockIntentService.INIT_REQUEST) || params.getTag().equals(StockIntentService.PERIODIC_REQUEST)){
             prepareUpdateURL(urlStringBuilder);
-        } else if (params.getTag().equals("add")){
+        } else if (params.getTag().equals(StockIntentService.ADD_REQUEST)){
             prepareAddURL(params, urlStringBuilder);
         }
         // finalize the URL for the API query.
@@ -129,7 +129,7 @@ public class StockTaskService extends GcmTaskService{
     private void prepareAddURL(TaskParams params, StringBuilder urlStringBuilder) {
         isUpdate = false;
         // get symbol from params.getExtra and build query
-        String stockInput = params.getExtras().getString("symbol");
+        String stockInput = params.getExtras().getString(StockIntentService.SYMBOL_KEY);
         try {
             urlStringBuilder.append(URLEncoder.encode("\"" + stockInput + "\")", "UTF-8"));
         } catch (UnsupportedEncodingException e){
@@ -156,7 +156,7 @@ public class StockTaskService extends GcmTaskService{
             initQueryCursor.moveToFirst();
             for (int i = 0; i < initQueryCursor.getCount(); i++){
                 mStoredSymbols.append("\""+
-                        initQueryCursor.getString(initQueryCursor.getColumnIndex("symbol"))+"\",");
+                        initQueryCursor.getString(initQueryCursor.getColumnIndex(QuoteColumns.SYMBOL))+"\",");
                 initQueryCursor.moveToNext();
             }
             mStoredSymbols.replace(mStoredSymbols.length() - 1, mStoredSymbols.length(), ")");

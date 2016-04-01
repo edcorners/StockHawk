@@ -29,6 +29,7 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
             Log.d(LOG_TAG, "Network OFF" );
             Utils.setDataStatus(context, StockTaskService.DATA_STATUS_OUTDATED);
         }
+        //TODO Notify widgets
     }
 }
 

@@ -11,13 +11,13 @@
     <string name="input_prefill"></string>
     <string name="widget_title">Today\'s Market</string>
     <string name="internet_connection_required">Uh-oh! This app requires an internet connection</string>
-    <string name="outdated_stock_list">No Stock Information Available</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="empty_stock_list">No Stock Information Available</string>
+    <string name="stock_already_saved">This stock is already saved!</string>
+    <string name="stock_symbol_not_found">Stock symbol not found</string>
 
     <!-- Key name for storing data status in SharedPreferences -->
     <string name="pref_data_status_key" translatable="false">data-status</string>
+    <string name="pref_scheduled_task_status_key" translatable="false">task-scheduled</string>
 
     <!-- Empty Weather Database -->
     <string name="empty_data_list_no_network">No stock information available. The network is not available to fetch data.</string>

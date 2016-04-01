@@ -133,4 +133,16 @@ public class Utils {
         spe.putInt(context.getString(R.string.pref_data_status_key), status);
         spe.apply();
     }
+
+    public static boolean getScheduledTaskStatus(Context context) {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        return sp.getBoolean(context.getString(R.string.pref_scheduled_task_status_key), false);
+    }
+
+    public static void setScheduledTaskStatus(Context context, boolean started) {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor spe = sp.edit();
+        spe.putBoolean(context.getString(R.string.pref_scheduled_task_status_key), started);
+        spe.apply();
+    }
 }

@@ -29,8 +29,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.facebook.stetho.Stetho;
-import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
@@ -44,7 +42,6 @@ import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
 import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
-import com.squareup.okhttp.OkHttpClient;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -56,7 +53,6 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     private String LOG_TAG = MyStocksActivity.class.getSimpleName();
     public static final long PERIODIC_TASK_FREQ_IN_SECS = 1600L;
     public static final long PERIODIC_TASK_FLEX_IN_SECS = 10L;
-    public static final String PERIODIC_TASK_PERIODIC_TAG = "periodic";
     private static final int CURSOR_LOADER_ID = 0;
 
     /**
@@ -69,7 +65,6 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     private Context mContext;
     private Cursor mCursor;
     boolean isConnected;
-    private SharedPreferences.Editor spe;
 
     @Bind(R.id.recycler_view)
     RecyclerView mRecyclerView;
@@ -86,17 +81,15 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         setContentView(R.layout.activity_my_stocks);
         ButterKnife.bind(this);
         mContext = this;
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        spe = sp.edit();
 
-        getStockData(savedInstanceState);
+        getStockData(savedInstanceState, false);
 
         initRecyclerView();
 
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getStockData(null);
+                getStockData(null, true);
                 mSwipeRefreshLayout.setRefreshing(false);
             }
         });
@@ -105,13 +98,13 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         initItemTouchHelper();
         createPeriodicTask();
 
-        Stetho.initialize(
+        /*Stetho.initialize(
                 Stetho.newInitializerBuilder(this)
                         .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
                         .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
                         .build());
         OkHttpClient client = new OkHttpClient();
-        client.networkInterceptors().add(new StethoInterceptor());
+        client.networkInterceptors().add(new StethoInterceptor());*/
 
     }
 
@@ -131,14 +124,15 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                     .setService(StockTaskService.class)
                     .setPeriod(PERIODIC_TASK_FREQ_IN_SECS)
                     .setFlex(PERIODIC_TASK_FLEX_IN_SECS)
-                    .setTag(PERIODIC_TASK_PERIODIC_TAG)
+                    .setTag(StockIntentService.PERIODIC_REQUEST)
                     .setRequiredNetwork(Task.NETWORK_STATE_CONNECTED)
                     .setRequiresCharging(false)
                     .build();
             // Schedule task with tag "periodic." This ensure that only the stocks present in the DB
             // are updated.
             GcmNetworkManager.getInstance(this).schedule(periodicTask);
-            //TODO Add a shared pref indicating task has been scheduled
+            // Add a shared pref indicating task has been scheduled
+            Utils.setScheduledTaskStatus(mContext, true);
         }
     }
 
@@ -161,15 +155,15 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                             new String[]{input.toString().toUpperCase()}, null);
                                     if (c.getCount() != 0) {
                                         Toast toast =
-                                                Toast.makeText(MyStocksActivity.this, "This stock is already saved!",
+                                                Toast.makeText(MyStocksActivity.this, getString(R.string.stock_already_saved),
                                                         Toast.LENGTH_LONG);
                                         toast.setGravity(Gravity.CENTER, Gravity.CENTER, 0);
                                         toast.show();
                                         return;
                                     } else {
                                         // Add the stock to DB
-                                        mServiceIntent.putExtra("tag", "add");
-                                        mServiceIntent.putExtra("symbol", input.toString().toUpperCase());
+                                        mServiceIntent.putExtra(StockIntentService.TAG_KEY, StockIntentService.ADD_REQUEST);
+                                        mServiceIntent.putExtra(StockIntentService.SYMBOL_KEY, input.toString().toUpperCase());
                                         startService(mServiceIntent);
                                     }
                                 }
@@ -180,22 +174,23 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         });
     }
 
-    private void getStockData(Bundle savedInstanceState) {
+    private void getStockData(Bundle savedInstanceState, boolean forceUpdate) {
         ConnectivityManager cm =
                 (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         isConnected = activeNetwork != null &&
                 activeNetwork.isConnectedOrConnecting();
-
         // The intent service is for executing immediate pulls from the Yahoo API
         // GCMTaskService can only schedule tasks, they cannot execute immediately
         mServiceIntent = new Intent(this, StockIntentService.class);
+
         if (savedInstanceState == null){
-            // Run the initialize task service so that some stocks appear upon an empty database
-            mServiceIntent.putExtra("tag", "init");
-            if (isConnected){
-                startService(mServiceIntent); //TODO run only if periodic task is unscheduled
+            //Run only if periodic task is unscheduled or forced
+            if (isConnected && (!Utils.getScheduledTaskStatus(mContext) || forceUpdate)){
+                mServiceIntent.putExtra(StockIntentService.TAG_KEY, StockIntentService.INIT_REQUEST);
+                // Run the initialize task service so that some stocks appear upon an empty database
+                startService(mServiceIntent);
             }
         }
     }
@@ -291,12 +286,10 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         mCursor = data;
 
         if(data.getCount() > 0 && !isConnected){
-            spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_OUTDATED);
-            spe.apply();
+            Utils.setDataStatus(mContext,StockTaskService.DATA_STATUS_OUTDATED);
             updateEmptyView();
         }else if(!isConnected){
-            spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_NO_CONNECTION);
-            spe.apply();
+            Utils.setDataStatus(mContext,StockTaskService.DATA_STATUS_NO_CONNECTION);
             updateEmptyView();
         }
 
@@ -340,16 +333,19 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                 mLinearLayout.addView(statusTextView, 0);
                 break;
             case StockTaskService.DATA_STATUS_CONNECTION_RESTORED:
-                getStockData(null);
-                initAddStockButton();
-                initItemTouchHelper();
+                onConnectionRestored();
                 break;
             case StockTaskService.DATA_STATUS_NOT_FOUND:
-                Toast.makeText(mContext, "Stock symbol not found", Toast.LENGTH_SHORT).show();
-                spe.putInt(mContext.getString(R.string.pref_data_status_key), StockTaskService.DATA_STATUS_OK);
-                spe.apply();
+                Toast.makeText(mContext, getString(R.string.stock_symbol_not_found), Toast.LENGTH_SHORT).show();
+                Utils.setDataStatus(mContext, StockTaskService.DATA_STATUS_OK);
                 break;
         }
+    }
+
+    private void onConnectionRestored() {
+        getStockData(null, true);
+        initAddStockButton();
+        initItemTouchHelper();
     }
 
 }

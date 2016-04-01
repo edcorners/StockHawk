@@ -44,15 +44,16 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        //TODO Limit query to last 15
+
 
         Uri uri = getIntent().getData();
         Log.v(LOG_TAG, uri.toString());
+
         return new CursorLoader(this, uri,
                 new String[]{QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE, QuoteColumns.PERCENT_CHANGE, QuoteColumns.CREATED},
                 null,
                 null,
-                null);
+                QuoteColumns._ID +" ASC LIMIT 15"); // Limit query to last 15
     }
 
     @Override
