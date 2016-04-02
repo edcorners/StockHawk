@@ -45,6 +45,9 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
 
             @Override
             public void onDataSetChanged() {
+                if (data != null) {
+                    data.close();
+                }
                 final long identityToken = Binder.clearCallingIdentity();
                 data = getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
                         STOCK_COLUMNS,
@@ -93,7 +96,7 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
 
             @Override
             public int getViewTypeCount() {
-                return 0;
+                return 1;
             }
 
             @Override

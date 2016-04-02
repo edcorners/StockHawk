@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"
-        android:background="@color/material_blue_500">
+        android:background="@color/md_material_blue_800">
 
         <TextView
             android:layout_width="wrap_content"
@@ -30,7 +30,8 @@
             android:layout_height="match_parent"
             android:divider="@null"
             android:dividerHeight="0dp"
-            tools:listitem="@layout/widget_collection_item"/>
+            tools:listitem="@layout/widget_collection_item"
+            android:layout_gravity="center_vertical" />
         <TextView
             android:id="@+id/widget_empty"
             android:layout_width="match_parent"
