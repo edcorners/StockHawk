@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.db.chart.model.LineSet;
 import com.db.chart.model.Point;
@@ -19,6 +21,7 @@ import com.db.chart.view.LineChartView;
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.rest.Utils;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -31,6 +34,8 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
 
     @Bind(R.id.linechart)
     LineChartView lineChartView;
+    @Bind(R.id.graph_linear_layout)
+    LinearLayout graphLinearLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,30 +58,49 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
                 new String[]{QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE, QuoteColumns.PERCENT_CHANGE, QuoteColumns.CREATED},
                 null,
                 null,
-                QuoteColumns._ID +" ASC LIMIT 15"); // Limit query to last 15
+                QuoteColumns._ID +" DESC LIMIT 7"); // Limit query to last 15
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         if (data.getCount() > 0) {
-            int i = 1;
+            data.move(data.getCount()+1);
+
             LineSet dataset = new LineSet();
             double min = Double.MAX_VALUE;
             double max = Double.MIN_VALUE;
 
-            while (data.moveToNext()) {
+            while (data.moveToPrevious()) {
 
                 String bid = data.getString(1).replace(",", ".");
+                String created = data.getString(3);
                 float bidFloat = Float.parseFloat(bid);
                 double bidDouble = Double.parseDouble(bid);
-                dataset.addPoint(new Point(String.valueOf(i), bidFloat));
+                dataset.addPoint(new Point(Utils.formatForGraph(created), bidFloat));
+
 
                 min = min > bidDouble ? bidDouble: min;
                 max = max < bidDouble ? bidDouble: max;
+                if(data.isFirst()){
+                    LinearLayout listItemQuoteLinearLayout = (LinearLayout) getLayoutInflater().inflate(R.layout.list_item_quote, null);
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.MATCH_PARENT, 4.0f);
+                    listItemQuoteLinearLayout.setLayoutParams(params);
+                    if(graphLinearLayout.getChildCount() > 1) {
+                        graphLinearLayout.removeViewAt(0);
+                    }
+                    TextView symbolTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.stock_symbol);
+                    TextView bidTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.bid_price);
+                    TextView changeTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.change );
+                    symbolTextView.setText(data.getString(0));
+                    bidTextView.setText(bid);
+                    changeTextView.setText(data.getString(2));
 
-                i++;
-
+                    graphLinearLayout.addView(listItemQuoteLinearLayout,0);
+                }
             }
+            dataset.setDotsRadius(7);
+            dataset.setDotsStrokeColor(getResources().getColor(R.color.material_green_700));
 
             Paint paint = new Paint();
             paint.setColor(Color.parseColor("#717171"));

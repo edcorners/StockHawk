@@ -5,7 +5,7 @@
              android:layout_width="match_parent"
              android:layout_height="wrap_content"
              android:background="@drawable/touch_selector_dark"
-             android:minHeight="?android:attr/listPreferredItemHeight"
+
              android:padding="@dimen/widget_margin"
     android:layout_gravity="center_vertical">
 

@@ -29,6 +29,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.facebook.stetho.Stetho;
+import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
@@ -42,6 +44,7 @@ import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
 import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
+import com.squareup.okhttp.OkHttpClient;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -98,13 +101,13 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         initItemTouchHelper();
         createPeriodicTask();
 
-        /*Stetho.initialize(
+        Stetho.initialize(
                 Stetho.newInitializerBuilder(this)
                         .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
                         .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
                         .build());
         OkHttpClient client = new OkHttpClient();
-        client.networkInterceptors().add(new StethoInterceptor());*/
+        client.networkInterceptors().add(new StethoInterceptor());
 
     }
 

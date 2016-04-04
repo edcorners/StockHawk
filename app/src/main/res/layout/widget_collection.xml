@@ -4,21 +4,22 @@
               android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-    android:padding="@dimen/widget_margin">
+    android:padding="@dimen/widget_margin"
+    >
 
     <FrameLayout
         android:id="@+id/widget"
-        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="?android:attr/listPreferredItemHeightSmall"
-        android:background="@color/md_material_blue_800">
+        android:minHeight="@dimen/abc_action_bar_default_height_material"
+        android:background="@color/md_material_blue_800"
+        android:layout_width="match_parent">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/widget_title"
             android:textSize="@dimen/md_title_textsize"
-            android:layout_gravity="center"/>
+            android:layout_gravity="center" />
     </FrameLayout>
     <FrameLayout
         android:layout_width="match_parent"

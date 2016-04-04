@@ -4,16 +4,19 @@ import android.content.ContentProviderOperation;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.text.TextUtils;
 import android.util.Log;
 
-import com.facebook.stetho.common.StringUtil;
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
 import com.sam_chordas.android.stockhawk.service.StockTaskService;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,6 +27,9 @@ import org.json.JSONObject;
 public class Utils {
 
     private static String LOG_TAG = Utils.class.getSimpleName();
+    public static final SimpleDateFormat fullDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final SimpleDateFormat shortDateTimeFormat = new SimpleDateFormat("MM-dd HH:mm");
+    public static final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
 
     public static boolean showPercent = true;
 
@@ -103,7 +109,7 @@ public class Utils {
             }else{
                 builder.withValue(QuoteColumns.PERCENT_CHANGE, "0");
             }
-            Log.v(LOG_TAG, "change: "+change);
+            Log.v(LOG_TAG, "change: " + change);
             if(change != null && !change.equals("null")) {
                 builder.withValue(QuoteColumns.CHANGE, truncateChange(change, false));
             }else{
@@ -116,10 +122,33 @@ public class Utils {
             } else {
                 builder.withValue(QuoteColumns.ISUP, 1);
             }
+            builder.withValue(QuoteColumns.CREATED, getCurrentDateTime());
         } catch (JSONException e){
             e.printStackTrace();
         }
         return builder.build();
+    }
+
+    private static String getCurrentDateTime() {
+        return fullDateTimeFormat.format(Calendar.getInstance().getTime());
+    }
+
+    public static String formatForGraph(String date){
+        String dateForGraph = date;
+        try {
+            Date parsedDate = fullDateTimeFormat.parse(date);
+            Calendar today = Calendar.getInstance();
+            Calendar yesterday = Calendar.getInstance();
+            yesterday.add(Calendar.DAY_OF_YEAR, -1);
+            if(DateUtils.isSameDay(today.getTime(), parsedDate)){
+                dateForGraph = timeFormat.format(parsedDate);
+            }else if(DateUtils.isSameDay(yesterday.getTime(), parsedDate)){
+                dateForGraph = shortDateTimeFormat.format(parsedDate);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return dateForGraph;
     }
 
     public static int getDataStatus(Context context) {
@@ -145,4 +174,5 @@ public class Utils {
         spe.putBoolean(context.getString(R.string.pref_scheduled_task_status_key), started);
         spe.apply();
     }
+
 }

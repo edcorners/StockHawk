@@ -23,5 +23,5 @@
     <string name="empty_data_list_no_network">No stock information available. The network is not available to fetch data.</string>
     <string name="empty_data_list_server_down">No stock information available. The server is not returning data.</string>
     <string name="outdated_data_list">Data displayed might be outdated due to a network connection problem.</string>
-    <string name="title_activity_stock_graph">Chart</string>
+    <string name="title_activity_stock_graph">Stock History</string>
 </resources>
