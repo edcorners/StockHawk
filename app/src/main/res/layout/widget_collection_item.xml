@@ -5,7 +5,6 @@
              android:layout_width="match_parent"
              android:layout_height="wrap_content"
              android:background="@drawable/touch_selector_dark"
-
              android:padding="@dimen/widget_margin"
     android:layout_gravity="center_vertical">
 
@@ -16,20 +15,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
-        android:gravity="left|center_vertical"
-        tools:text="GOOG"
-        android:layout_gravity="center_vertical" />
+        android:layout_gravity="start|center_vertical"
+        tools:text="GOOG" />
 
     <TextView
         android:id="@+id/change_widget"
         style="@style/PercentChangeTextStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical|right"
+        android:layout_gravity="center_vertical|end"
         android:layout_margin="3dp"
         android:background="@drawable/percent_change_pill"
-        android:paddingLeft="3dp"
-        android:paddingRight="3dp"
+        android:paddingStart="3dp"
+        android:paddingEnd="3dp"
         tools:text="100%"
         />
 

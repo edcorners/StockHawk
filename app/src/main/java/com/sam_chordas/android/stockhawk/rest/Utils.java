@@ -1,10 +1,14 @@
 package com.sam_chordas.android.stockhawk.rest;
 
+import android.annotation.TargetApi;
 import android.content.ContentProviderOperation;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
@@ -47,7 +51,6 @@ public class Utils {
                     jsonObject = jsonObject.getJSONObject("results")
                             .getJSONObject("quote");
                     String bid = jsonObject.getString("Bid");
-                    Log.v(LOG_TAG, "bid:"+bid);
                     if(bid != null && !bid.equals("null")) {
                         batchOperations.add(buildBatchOperation(jsonObject));
                     }
@@ -102,14 +105,14 @@ public class Utils {
             builder.withValue(QuoteColumns.SYMBOL, jsonObject.getString("symbol"));
             builder.withValue(QuoteColumns.BIDPRICE, truncateBidPrice(jsonObject.getString("Bid")));
             String changeinPercent = jsonObject.getString("ChangeinPercent");
-            Log.v(LOG_TAG, "changeinPercent: "+changeinPercent);
+
             if(changeinPercent != null && !changeinPercent.equals("null")) {
                 builder.withValue(QuoteColumns.PERCENT_CHANGE, truncateChange(
                         changeinPercent, true));
             }else{
                 builder.withValue(QuoteColumns.PERCENT_CHANGE, "0");
             }
-            Log.v(LOG_TAG, "change: " + change);
+
             if(change != null && !change.equals("null")) {
                 builder.withValue(QuoteColumns.CHANGE, truncateChange(change, false));
             }else{
@@ -173,6 +176,55 @@ public class Utils {
         SharedPreferences.Editor spe = sp.edit();
         spe.putBoolean(context.getString(R.string.pref_scheduled_task_status_key), started);
         spe.apply();
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static void createListItemView(Context context, Cursor data, TextView symbolTextView, TextView bidTextView, TextView changeTextView) {
+        int sdk = Build.VERSION.SDK_INT;
+        boolean isUp = data.getInt(data.getColumnIndex(QuoteColumns.ISUP)) == 1;
+        String bid = data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE));
+        if (isUp) {
+            if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
+                changeTextView.setBackgroundDrawable(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
+            } else {
+                changeTextView.setBackground(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
+            }
+        } else {
+            if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
+                changeTextView.setBackgroundDrawable(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
+            } else {
+                changeTextView.setBackground(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
+            }
+        }
+
+        String symbol = data.getString(data.getColumnIndex(QuoteColumns.SYMBOL));
+        symbolTextView.setText(symbol);
+        symbolTextView.setContentDescription(symbol.replace("",".").substring(1));// Separates letters so it reads em separately
+        bidTextView.setText(bid);
+        bidTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_per_share), bid));
+        if (Utils.showPercent) {
+            String percent_change = data.getString(data.getColumnIndex(QuoteColumns.PERCENT_CHANGE));
+            changeTextView.setText(percent_change);
+            double percentDouble = Double.parseDouble(percent_change.trim().replace("%", ""));
+            if(isUp){
+                changeTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_up_percentage), Math.abs(percentDouble)));
+            }else{
+                changeTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_down_percentage), Math.abs(percentDouble)));
+            }
+        } else {
+            String change = data.getString(data.getColumnIndex(QuoteColumns.CHANGE));
+            changeTextView.setText(change);
+            double changeValue = Double.parseDouble(change.trim());
+            if(isUp){
+                changeTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_up_points), Math.abs(changeValue)));
+            }else{
+                changeTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_down_points), Math.abs(changeValue)));
+            }
+        }
     }
 
 }

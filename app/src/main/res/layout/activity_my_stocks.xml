@@ -1,5 +1,5 @@
 
-<RelativeLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fab="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,7 +10,8 @@
         android:id="@+id/recycler_view_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:contentDescription="@string/cd_stock_information_for_today">
 
         <android.support.v4.widget.SwipeRefreshLayout
             android:id="@+id/swipe_refresh_layout"
@@ -20,7 +21,6 @@
                 android:id="@+id/recycler_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
                 />
         </android.support.v4.widget.SwipeRefreshLayout>
     </LinearLayout>
@@ -29,7 +29,7 @@
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
+        android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_add_white_24dp"
         fab:fab_colorNormal="@color/material_blue_500"
@@ -38,8 +38,8 @@
         fab:fab_shadow="true"
         fab:fab_type="normal"
         fab:layout_anchor="recycler_view"
-        fab:layout_anchorGravity="bottom | end"
+        android:contentDescription="@string/cd_add_new_stock_symbol"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         />
-</RelativeLayout>
+</FrameLayout>

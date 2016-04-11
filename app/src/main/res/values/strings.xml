@@ -1,27 +1,35 @@
 <resources>
+    <!-- Titles -->
     <string name="app_name">Stock Hawk</string>
-
-    <string name="action_example">Example action</string>
-
+    <string name="title_activity_stock_graph">Stock History</string>
     <string name="action_settings">Settings</string>
     <string name="action_change_units">Change Units</string>
     <string name="symbol_search">Symbol Search</string>
     <string name="content_test">Search for a Stock Symbol</string>
     <string name="input_hint">FB</string>
-    <string name="input_prefill"></string>
     <string name="widget_title">Today\'s Market</string>
-    <string name="internet_connection_required">Uh-oh! This app requires an internet connection</string>
-    <string name="empty_stock_list">No Stock Information Available</string>
-    <string name="stock_already_saved">This stock is already saved!</string>
-    <string name="stock_symbol_not_found">Stock symbol not found</string>
+    <string name="input_prefill"></string>
+
+    <!-- Content description -->
+    <string name="cd_stock_value_up_percentage">Up %s percent</string>
+    <string name="cd_stock_value_up_points">Up %s cents</string>
+    <string name="cd_stock_value_down_percentage">Down %s percent</string>
+    <string name="cd_stock_value_down_points">Down %s cents</string>
+    <string name="cd_stock_value_per_share">%s per share</string>
+    <string name="cd_stock_information_for_today">Stock information for today</string>
+    <string name="cd_add_new_stock_symbol">Add new stock symbol</string>
 
     <!-- Key name for storing data status in SharedPreferences -->
     <string name="pref_data_status_key" translatable="false">data-status</string>
     <string name="pref_scheduled_task_status_key" translatable="false">task-scheduled</string>
 
-    <!-- Empty Weather Database -->
+    <!-- App status messages -->
     <string name="empty_data_list_no_network">No stock information available. The network is not available to fetch data.</string>
     <string name="empty_data_list_server_down">No stock information available. The server is not returning data.</string>
     <string name="outdated_data_list">Data displayed might be outdated due to a network connection problem.</string>
-    <string name="title_activity_stock_graph">Stock History</string>
+    <string name="internet_connection_required">Uh-oh! This app requires an internet connection</string>
+    <string name="empty_stock_list">No Stock Information Available</string>
+    <string name="stock_already_saved">This stock is already saved!</string>
+    <string name="stock_symbol_not_found">Stock symbol not found</string>
+
 </resources>

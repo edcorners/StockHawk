@@ -1,12 +1,15 @@
 package com.sam_chordas.android.stockhawk.ui;
 
+import android.annotation.TargetApi;
 import android.app.LoaderManager;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.app.Activity;
 import android.support.v7.app.AppCompatActivity;
@@ -28,6 +31,7 @@ import butterknife.ButterKnife;
 
 public class StockGraphActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
+    public static final String LIMIT = "7";
     private final int LOADER_ID = 0;
     private final String LOG_TAG = StockGraphActivity.class.getSimpleName();
 
@@ -49,16 +53,14 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-
-
         Uri uri = getIntent().getData();
         Log.v(LOG_TAG, uri.toString());
 
         return new CursorLoader(this, uri,
-                new String[]{QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE, QuoteColumns.PERCENT_CHANGE, QuoteColumns.CREATED},
+                new String[]{QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE, QuoteColumns.PERCENT_CHANGE, QuoteColumns.CREATED, QuoteColumns.ISUP, QuoteColumns.CHANGE},
                 null,
                 null,
-                QuoteColumns._ID +" DESC LIMIT 7"); // Limit query to last 15
+                QuoteColumns._ID +" DESC LIMIT "+ LIMIT); // Limit query to last 7
     }
 
     @Override
@@ -82,28 +84,14 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
                 min = min > bidDouble ? bidDouble: min;
                 max = max < bidDouble ? bidDouble: max;
                 if(data.isFirst()){
-                    LinearLayout listItemQuoteLinearLayout = (LinearLayout) getLayoutInflater().inflate(R.layout.list_item_quote, null);
-                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.MATCH_PARENT, 4.0f);
-                    listItemQuoteLinearLayout.setLayoutParams(params);
-                    if(graphLinearLayout.getChildCount() > 1) {
-                        graphLinearLayout.removeViewAt(0);
-                    }
-                    TextView symbolTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.stock_symbol);
-                    TextView bidTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.bid_price);
-                    TextView changeTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.change );
-                    symbolTextView.setText(data.getString(0));
-                    bidTextView.setText(bid);
-                    changeTextView.setText(data.getString(2));
-
-                    graphLinearLayout.addView(listItemQuoteLinearLayout,0);
+                    displayListItem(data, bid);
                 }
             }
             dataset.setDotsRadius(7);
             dataset.setDotsStrokeColor(getResources().getColor(R.color.material_green_700));
 
             Paint paint = new Paint();
-            paint.setColor(Color.parseColor("#717171"));
+            paint.setColor(getResources().getColor(R.color.graph_grid_lines));
 
             dataset.setDotsColor(Color.WHITE);
             dataset.setColor(getResources().getColor(R.color.material_green_700));
@@ -117,6 +105,25 @@ public class StockGraphActivity extends AppCompatActivity implements LoaderManag
             lineChartView.setGrid(ChartView.GridType.FULL, paint);
             lineChartView.show();
         }
+    }
+
+
+    private void displayListItem(Cursor data, String bid) {
+        LinearLayout listItemQuoteLinearLayout = (LinearLayout) getLayoutInflater().inflate(R.layout.list_item_quote, null);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT, 4.0f);
+        listItemQuoteLinearLayout.setLayoutParams(params);
+        if(graphLinearLayout.getChildCount() > 1) {
+            graphLinearLayout.removeViewAt(0);
+        }
+
+        TextView symbolTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.stock_symbol);
+        TextView bidTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.bid_price);
+        TextView changeTextView = (TextView) listItemQuoteLinearLayout.findViewById(R.id.change );
+
+        Utils.createListItemView(this, data, symbolTextView, bidTextView, changeTextView);
+
+        graphLinearLayout.addView(listItemQuoteLinearLayout,0);
     }
 
     @Override

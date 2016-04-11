@@ -2,6 +2,7 @@ package com.sam_chordas.android.stockhawk.widget;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Binder;
 import android.widget.AdapterView;
 import android.widget.RemoteViews;
@@ -85,7 +86,9 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
                 remoteView.setTextViewText(R.id.change_widget, String.valueOf(change));
                 remoteView.setTextViewText(R.id.stock_symbol_widget, stockSymbol);
 
-
+                final Intent fillInIntent = new Intent();
+                fillInIntent.setData(QuoteProvider.Quotes.withSymbol(stockSymbol));
+                remoteView.setOnClickFillInIntent(R.id.widget_list_item, fillInIntent);
                 return remoteView;
             }
 
