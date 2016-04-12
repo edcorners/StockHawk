@@ -34,6 +34,7 @@ public class Utils {
     public static final SimpleDateFormat fullDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final SimpleDateFormat shortDateTimeFormat = new SimpleDateFormat("MM-dd HH:mm");
     public static final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+    public static final int SDK = Build.VERSION.SDK_INT;
 
     public static boolean showPercent = true;
 
@@ -178,28 +179,12 @@ public class Utils {
         spe.apply();
     }
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+
     public static void createListItemView(Context context, Cursor data, TextView symbolTextView, TextView bidTextView, TextView changeTextView) {
-        int sdk = Build.VERSION.SDK_INT;
-        boolean isUp = data.getInt(data.getColumnIndex(QuoteColumns.ISUP)) == 1;
+
         String bid = data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE));
-        if (isUp) {
-            if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
-                changeTextView.setBackgroundDrawable(
-                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
-            } else {
-                changeTextView.setBackground(
-                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
-            }
-        } else {
-            if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
-                changeTextView.setBackgroundDrawable(
-                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
-            } else {
-                changeTextView.setBackground(
-                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
-            }
-        }
+        boolean isUp = data.getInt(data.getColumnIndex(QuoteColumns.ISUP)) == 1;
+        setChangeBackground(context, changeTextView, isUp);
 
         String symbol = data.getString(data.getColumnIndex(QuoteColumns.SYMBOL));
         symbolTextView.setText(symbol);
@@ -225,6 +210,29 @@ public class Utils {
                 changeTextView.setContentDescription(String.format(context.getString(R.string.cd_stock_value_down_points), Math.abs(changeValue)));
             }
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static boolean setChangeBackground(Context context, TextView changeTextView, boolean isUp) {
+
+        if (isUp) {
+            if (SDK < Build.VERSION_CODES.JELLY_BEAN) {
+                changeTextView.setBackgroundDrawable(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
+            } else {
+                changeTextView.setBackground(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_green));
+            }
+        } else {
+            if (SDK < Build.VERSION_CODES.JELLY_BEAN) {
+                changeTextView.setBackgroundDrawable(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
+            } else {
+                changeTextView.setBackground(
+                        context.getResources().getDrawable(R.drawable.percent_change_pill_red));
+            }
+        }
+        return isUp;
     }
 
 }
