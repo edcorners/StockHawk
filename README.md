@@ -10,4 +10,8 @@ A widget displaying tracked stocks is also available.
 
 ## Usage
 
-Clone this repository on your machine, open the code on Android Studio 2.0 and run.
+* Clone this repository on your machine, open the code on Android Studio 2.0 and run.
+
+#### Gradle Installation
+
+* Run ``gradlew app:installDebug`` with an android device connected on debug mode.
